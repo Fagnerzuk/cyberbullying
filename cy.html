@@ -1,0 +1,334 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário Analítico Social - Cyberbullying</title>
+    <!-- Tailwind CSS para base moderna e utilitários rápidos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para renderizar os 6 gráficos de pizza elegantes -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Variáveis de cores conforme a regra: 60% bege, 30% verde claro, 10% verde escuro */
+        :root {
+            --color-bege: #F5EFEB; /* 60% Base / Fundo principal */
+            --color-verde-claro: #A3B899; /* 30% Estrutura / Detalhes de botões e cartões */
+            --color-verde-escuro: #3D5A45; /* 10% Destaques importantes / Textos de títulos */
+            --color-texto: #2E3A31;
+        }
+
+        body {
+            background-color: var(--color-bege);
+            color: var(--color-texto);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        /* Cores dinâmicas para os botões selecionados */
+        .selected-btn-1 {
+            background-color: #EF4444 !important; /* Vermelho */
+            color: white !important;
+            border-color: #EF4444 !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-2 {
+            background: linear-gradient(135deg, #EF4444 70%, #10B981 30%) !important; /* Gradiente mais forte vermelho */
+            color: white !important;
+            border-color: #EF4444 !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-3 {
+            background-color: #F59E0B !important; /* Amarelo */
+            color: black !important;
+            border-color: #F59E0B !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-4 {
+            background: linear-gradient(135deg, #EF4444 30%, #10B981 70%) !important; /* Gradiente mais forte verde */
+            color: white !important;
+            border-color: #10B981 !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-5 {
+            background-color: #10B981 !important; /* Verde */
+            color: white !important;
+            border-color: #10B981 !important;
+            transform: scale(1.1);
+        }
+
+        /* Estilo base dos botões de escala */
+        .option-btn {
+            border: 2px solid #000000;
+            background-color: transparent;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .option-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Estilo da barra de rolagem */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-bege);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-verde-claro);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-verde-escuro);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
+
+    <!-- PÁGINA 1: QUESTIONÁRIO -->
+    <main id="pagina-questionario" class="w-full max-w-2xl bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-6 md:p-8 space-y-8">
+        
+        <!-- Cabeçalho (Minimalista) -->
+        <header class="text-center pb-6 border-b border-[var(--color-verde-claro)]/40">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight" style="color: var(--color-verde-escuro);">
+                Cyberbullying
+            </h1>
+            <p class="text-sm md:text-base mt-2 font-medium opacity-80" style="color: var(--color-texto);">
+                Um Questionário Analítico Social sobre comportamento digital e agressões online.
+            </p>
+        </header>
+
+        <!-- Legenda de Respostas -->
+        <div class="rounded-xl p-4 border border-[var(--color-verde-claro)]" style="background-color: rgba(163, 184, 153, 0.15);">
+            <h3 class="font-bold text-sm uppercase tracking-wider mb-2" style="color: var(--color-verde-escuro);">Legenda da Escala:</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-1.5 text-xs font-semibold" style="color: var(--color-texto);">
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded bg-red-100 text-red-700 font-bold">1</span> Discordo totalmente</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded bg-orange-100 text-orange-700 font-bold">2</span> Discordo</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded bg-amber-100 text-amber-700 font-bold">3</span> Neutro</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded bg-emerald-50 text-emerald-700 font-bold">4</span> Concordo</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded bg-emerald-200 text-emerald-900 font-bold">5</span> Concordo totalmente</div>
+            </div>
+        </div>
+
+        <!-- Formulário das Perguntas -->
+        <form id="quizForm" class="space-y-6">
+            
+            <!-- Pergunta 1 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    1. Você passa muito tempo nas redes sociais?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="0">
+                    <button type="button" onclick="selectScore(0, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(0, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(0, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(0, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(0, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 2 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    2. Já sofreu cyberbullying?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="1">
+                    <button type="button" onclick="selectScore(1, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(1, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(1, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(1, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(1, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 3 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    3. Já presenciou ataques online?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="2">
+                    <button type="button" onclick="selectScore(2, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(2, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(2, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(2, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(2, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 4 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    4. Denunciaria um caso?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="3">
+                    <button type="button" onclick="selectScore(3, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(3, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(3, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(3, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(3, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 5 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    5. As redes sociais afetam o comportamento das pessoas?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="4">
+                    <button type="button" onclick="selectScore(4, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(4, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(4, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(4, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(4, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 6 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    6. Você acha que as escolas deveriam falar mais sobre cyberbullying?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="5">
+                    <button type="button" onclick="selectScore(5, 1)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(5, 2)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(5, 3)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(5, 4)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(5, 5)" class="option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+        </form>
+
+        <!-- Botão de Navegação com Texto Azul Solicitado -->
+        <footer class="text-center pt-4 border-t border-[var(--color-verde-claro)]/40">
+            <button onclick="goToResults()" class="text-blue-600 hover:text-blue-800 font-bold transition-colors cursor-pointer text-lg underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1">
+                Gráficos e porcentagens da pesquisa.
+            </button>
+        </footer>
+
+    </main>
+
+    <!-- PÁGINA 2: GRÁFICOS (Inicialmente Oculta) -->
+    <main id="pagina-graficos" class="hidden w-full max-w-4xl bg-white/50 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-6 md:p-8 space-y-8">
+        
+        <!-- Cabeçalho de Resultados -->
+        <header class="text-center pb-6 border-b border-[var(--color-verde-escuro)]/20 relative">
+            <button onclick="goToQuiz()" class="absolute left-0 top-1/2 -translate-y-1/2 px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--color-verde-escuro)] text-[var(--color-verde-escuro)] hover:bg-[var(--color-verde-claro)]/20 transition-all">
+                ← Voltar
+            </button>
+            <h1 class="text-3xl font-extrabold" style="color: var(--color-verde-escuro);">
+                Resultados Obtidos
+            </h1>
+            <p class="text-sm mt-1" style="color: var(--color-texto);">
+                Veja abaixo os dados correspondentes e tendências calculadas pelo questionário.
+            </p>
+        </header>
+
+        <!-- Grade de Gráficos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Gráfico 1 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    1. Você passa muito tempo nas redes sociais?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-0"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 2 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    2. Já sofreu cyberbullying?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-1"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 3 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    3. Já presenciou ataques online?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-2"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 4 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    4. Denunciaria um caso?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-3"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 5 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    5. As redes sociais afetam o comportamento das pessoas?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-4"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 6 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)]/30 flex flex-col items-center">
+                <h3 class="font-bold text-sm text-center mb-3 min-h-[40px] flex items-center" style="color: var(--color-verde-escuro);">
+                    6. Você acha que as escolas deveriam falar mais sobre cyberbullying?
+                </h3>
+                <div class="w-full max-w-[240px] aspect-square">
+                    <canvas id="chart-5"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Script de lógica e renderização -->
+    <script>
+        // Armazenamento das respostas do usuário local (inicializadas vazias)
+        const userResponses = [null, null, null, null, null, null];
+
+        // Dados estatísticos base de simulação populacional real do questionário
+        // Usados para compor os gráficos com base nas respostas gerais acumuladas
+        // garantindo que, mesmo que o usuário responda uma vez, haja um gráfico proporcional realista
+        const databaseMock = [
+            [20, 15, 10, 25, 30], // P1: [Nota 1, Nota 2, Nota 3, Nota 4, Nota 5]
+            [40, 20, 15, 15, 10], // P2
+            [15, 12, 18, 30, 25], // P3
+            [10, 8, 12, 35, 35],  // P4
+            [5, 10, 15, 40, 30],  // P5
+            [8, 7, 10, 25, 50]    // P6
+        ];
+
+        // Instâncias globais dos gráficos para poder destruí-las/atualizá-las
+        let chartInstances = [];
+
+        // Função executada quando o usuário clica em um botão de resposta
+        function selectScore(questionIndex, score) {
+            // Salva a resposta do usuário
+            userResponses[questionIndex] = score;
+
+            // Busca o container da pergunta para remover classes ativas dos irmãos
+            const container = document.querySelector(`[data-question="${questionIndex}"]`);
+            const buttons = container.querySelectorAll('.option-btn');
+
+            // Limpa as classes de estilo selecionadas anteriores de todos os botões da mesma pergunta
+            buttons.forEach(btn => {
+                btn.className = "option-btn w-10 h-10 rounded-full flex items-center justify-center text-sm";
+            });
+
+            // Encontra o botão clicado e aplica a classe de cor correspondente conforme a regra
+            const selectedBtn = buttons[score - 1];
+            selectedBtn.classList.add(`selected-btn-${score}`);
+        }
+
+        // Navega para a tela de gráficos e renderiza os gráficos baseados nos dados
+        function goToResults() {
+            /
