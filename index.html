@@ -1,4 +1,4 @@
-```html
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -326,4 +326,249 @@
 
     </main>
 
-    <!-- Script de lógica do Fireb
+        <!-- Script de lógica do Firebase e gráficos -->
+    <script type="module">
+        // Armazenamento local das respostas do formulário atual
+        const userResponses = [null, null, null, null, null, null];
+        let hasSubmitted = false;
+        let currentUserSequentialId = null;
+
+        // Disponibiliza a função globalmente para as funções inline onclick funcionarem
+        window.selectScore = function(questionIndex, score) {
+            if (hasSubmitted) return; // Bloqueia edições após enviar
+
+            userResponses[questionIndex] = score;
+
+            // Esconde alertas prévios
+            const statusBox = document.getElementById('status-box');
+            statusBox.classList.add('hidden');
+
+            const container = document.querySelector(`[data-question="${questionIndex}"]`);
+            const buttons = container.querySelectorAll('.option-btn');
+
+            buttons.forEach(btn => {
+                btn.className = "option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm";
+            });
+
+            const selectedBtn = buttons[score - 1];
+            selectedBtn.classList.add(`selected-btn-${score}`);
+        }
+
+        // Função principal de submissão integrada com Firestore (Garantia de concorrência com Transactions)
+        window.submitAndGoToResults = async function() {
+            // 1. Validar se todas as perguntas foram preenchidas
+            const unanswered = userResponses.some(response => response === null);
+            const statusBox = document.getElementById('status-box');
+
+            if (unanswered) {
+                statusBox.className = "p-4 rounded-xl text-sm font-semibold text-center bg-red-100 border border-red-300 text-red-800";
+                statusBox.textContent = "Por favor, responda a todas as 6 perguntas antes de prosseguir!";
+                statusBox.classList.remove('hidden');
+                statusBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Se já enviou anteriormente nesta sessão, apenas exibe os resultados salvos
+            if (hasSubmitted) {
+                showResultsScreen();
+                return;
+            }
+
+            try {
+                statusBox.className = "p-4 rounded-xl text-sm font-semibold text-center bg-blue-100 border border-blue-300 text-blue-800";
+                statusBox.textContent = "Salvando suas respostas com segurança na nuvem...";
+                statusBox.classList.remove('hidden');
+
+                const { db, appId, doc, runTransaction, collection } = window;
+
+                // Tenta autenticar anonimamente caso não esteja logado
+                let user = window.auth.currentUser;
+                if (!user) {
+                    await signInAnonymously(window.auth);
+                    user = window.auth.currentUser;
+                }
+
+                if (!user) {
+                    throw new Error("Erro de autenticação com o servidor.");
+                }
+
+                // Caminho estrito de acordo com as regras:
+                // /artifacts/{appId}/public/data/respostas
+                const metaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'metadata');
+                const respostasColRef = collection(db, 'artifacts', appId, 'public', 'data', 'respostas');
+
+                // Executa uma Transação para garantir número sequencial limpo (1, 2, 3...) livre de conflitos de concorrência
+                await runTransaction(db, async (transaction) => {
+                    const metaDoc = await transaction.get(metaDocRef);
+                    let nextId = 1;
+
+                    if (metaDoc.exists()) {
+                        nextId = (metaDoc.data().totalRespondentes || 0) + 1;
+                    }
+
+                    currentUserSequentialId = nextId;
+
+                    // Cria o documento do usuário atual de forma sequencial (ex: "15")
+                    const userDocRef = doc(respostasColRef, String(nextId));
+                    transaction.set(userDocRef, {
+                        userId: user.uid,
+                        username: String(nextId),
+                        respostas: userResponses,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Atualiza o contador geral global
+                    transaction.set(metaDocRef, {
+                        totalRespondentes: nextId
+                    }, { merge: true });
+                });
+
+                hasSubmitted = true;
+                
+                // Sucesso! Apresenta o feedback amigável
+                statusBox.className = "p-4 rounded-xl text-sm font-semibold text-center bg-emerald-100 border border-emerald-300 text-emerald-800";
+                statusBox.innerHTML = `Sua pesquisa foi salva com sucesso! Você é o <strong>Usuário nº ${currentUserSequentialId}</strong>. Seus dados estão protegidos anonimamente.`;
+                
+                // Aguarda 2 segundos para o usuário ver o ID anônimo dele e transiciona
+                setTimeout(() => {
+                    showResultsScreen();
+                }, 2500);
+
+            } catch (error) {
+                console.error("Erro ao enviar dados para a nuvem:", error);
+                statusBox.className = "p-4 rounded-xl text-sm font-semibold text-center bg-red-100 border border-red-300 text-red-800";
+                statusBox.textContent = "Erro de conexão ao salvar dados. Por favor, certifique-se de estar online e tente novamente.";
+            }
+        }
+
+        // Muda tela e inicia os gráficos
+        function showResultsScreen() {
+            document.getElementById('pagina-questionario').classList.add('hidden');
+            document.getElementById('pagina-graficos').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderCollectiveCharts();
+        }
+
+        window.goToQuiz = function() {
+            document.getElementById('pagina-graficos').classList.add('hidden');
+            document.getElementById('pagina-questionario').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        let chartInstances = [];
+
+        // Coleta TODAS as respostas na nuvem e consolida os gráficos
+        async function renderCollectiveCharts() {
+            const { db, appId, getDocs, collection } = window;
+            const respondentsText = document.getElementById('total-respondents-text');
+
+            try {
+                respondentsText.textContent = "Carregando dados acumulados do servidor...";
+
+                // Busca a coleção completa de respostas online
+                const respostasColRef = collection(db, 'artifacts', appId, 'public', 'data', 'respostas');
+                const querySnapshot = await getDocs(respostasColRef);
+
+                // Prepara matriz vazia para somar a distribuição de notas (1 a 5) de cada uma das 6 perguntas
+                // acumuladoGlobal[perguntaIndex][nota_1_a_5 - 1]
+                const acumuladoGlobal = [
+                    [0, 0, 0, 0, 0], // Q1
+                    [0, 0, 0, 0, 0], // Q2
+                    [0, 0, 0, 0, 0], // Q3
+                    [0, 0, 0, 0, 0], // Q4
+                    [0, 0, 0, 0, 0], // Q5
+                    [0, 0, 0, 0, 0]  // Q6
+                ];
+
+                let totalDeParticipantes = 0;
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (data && Array.isArray(data.respostas)) {
+                        totalDeParticipantes++;
+                        data.respostas.forEach((resposta, idxPergunta) => {
+                            if (resposta >= 1 && resposta <= 5) {
+                                acumuladoGlobal[idxPergunta][resposta - 1]++;
+                            }
+                        });
+                    }
+                });
+
+                // Se ainda não houver nenhum dado no servidor (início), exibe dados do usuário atual ou base neutra
+                if (totalDeParticipantes === 0) {
+                    totalDeParticipantes = 1;
+                    userResponses.forEach((res, i) => {
+                        if (res) acumuladoGlobal[i][res - 1] = 1;
+                    });
+                }
+
+                respondentsText.innerHTML = `Estatística baseada no acumulado de <strong>${totalDeParticipantes} respondente(s)</strong> online.`;
+
+                // Destruir gráficos anteriores
+                chartInstances.forEach(inst => inst.destroy());
+                chartInstances = [];
+
+                const labels = [
+                    '1 (Discordo totalmente)', 
+                    '2 (Discordo)', 
+                    '3 (Neutro)', 
+                    '4 (Concordo)', 
+                    '5 (Concordo totalmente)'
+                ];
+                
+                const backgroundColors = [
+                    '#EF4444', // Vermelho (1)
+                    '#DC2626', // Vermelho Escuro/Gradiente aproximado (2)
+                    '#FBBF24', // Amarelo (3)
+                    '#10B981', // Verde Claro/Gradiente aproximado (4)
+                    '#059669'  // Verde Escuro (5)
+                ];
+
+                // Renderiza cada um dos 6 gráficos dinâmicos acumulados
+                for (let i = 0; i < 6; i++) {
+                    const ctx = document.getElementById(`chart-${i}`).getContext('2d');
+                    
+                    const newChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: acumuladoGlobal[i],
+                                backgroundColor: backgroundColors,
+                                borderWidth: 1.5,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const val = context.raw || 0;
+                                            const sum = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const pct = sum > 0 ? ((val / sum) * 100).toFixed(1) : 0;
+                                            return ` ${context.label}: ${pct}% (${val} votos)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    chartInstances.push(newChart);
+                }
+
+            } catch (err) {
+                console.error("Erro ao buscar dados acumulados:", err);
+                respondentsText.textContent = "Não foi possível sincronizar os gráficos em tempo real devido a uma falha de conexão.";
+            }
+        }
+    </script>
+</body>
+</html>
+
+
