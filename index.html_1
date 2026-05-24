@@ -1,0 +1,314 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário Analítico Social - Cyberbullying</title>
+    <!-- Tailwind CSS para design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para renderizar os 6 gráficos estatísticos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase SDKs via CDN (v10 compatível) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDocs, collection, runTransaction } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+        // Configuração do Firebase com fallback seguro para testes locais
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "",
+                authDomain: "cyberbullying-quiz-default.firebaseapp.com",
+                projectId: "cyberbullying-quiz-default",
+                storageBucket: "cyberbullying-quiz-default.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef"
+              };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cyberbullying-analise-app';
+
+        // Vincula as dependências ao escopo global para que os scripts tradicionais do site possam acessá-las
+        window.db = db;
+        window.auth = auth;
+        window.appId = appId;
+        window.collection = collection;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.runTransaction = runTransaction;
+        window.signInAnonymously = signInAnonymously;
+    </script>
+
+    <style>
+        /* Variáveis de cores conforme a regra: 60% bege, 30% verde claro, 10% verde escuro */
+        :root {
+            --color-bege: #F5EFEB; /* 60% Base / Fundo principal */
+            --color-verde-claro: #A3B899; /* 30% Estrutura */
+            --color-verde-escuro: #3D5A45; /* 10% Destaques importantes */
+            --color-texto: #2E3A31;
+        }
+
+        body {
+            background-color: var(--color-bege);
+            color: var(--color-texto);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        /* Estilo base dos botões de escala (Fundo inicial branco e bordas pretas) */
+        .option-btn {
+            border: 2px solid #000000;
+            background-color: #FFFFFF;
+            color: #000000;
+            font-weight: 700;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Cores de preenchimento quando selecionado conforme regras do usuário */
+        .selected-btn-1 {
+            background-color: #EF4444 !important; /* Vermelho */
+            color: #FFFFFF !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-2 {
+            background: linear-gradient(135deg, #EF4444 70%, #10B981 30%) !important; /* Gradiente com Vermelho mais forte */
+            color: #FFFFFF !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-3 {
+            background-color: #FBBF24 !important; /* Amarelo */
+            color: #000000 !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-4 {
+            background: linear-gradient(135deg, #EF4444 30%, #10B981 70%) !important; /* Gradiente com Verde mais forte */
+            color: #FFFFFF !important;
+            transform: scale(1.1);
+        }
+        .selected-btn-5 {
+            background-color: #10B981 !important; /* Verde */
+            color: #FFFFFF !important;
+            transform: scale(1.1);
+        }
+
+        /* Estilo da barra de rolagem */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-bege);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-verde-claro);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-verde-escuro);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4">
+
+    <!-- PÁGINA 1: QUESTIONÁRIO -->
+    <main id="pagina-questionario" class="w-full max-w-2xl bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-6 md:p-8 space-y-8 relative">
+        
+        <!-- Ícone da Coroa (Administrador) -->
+        <button onclick="goToAdminLogin()" class="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-verde-claro)]/20 transition-all text-yellow-600 hover:text-yellow-700 cursor-pointer" title="Área do Administrador">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M2 19h20v2H2v-2zm1-2h18L18 7l-4 4-2-6-2 6-4-4-3 10z"/>
+            </svg>
+        </button>
+
+        <!-- Cabeçalho (Minimalista) -->
+        <header class="text-center pb-6 border-b border-[var(--color-verde-claro)]/40 pr-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight" style="color: var(--color-verde-escuro);">
+                Cyberbullying
+            </h1>
+            <p class="text-sm md:text-base mt-2 font-medium opacity-80" style="color: var(--color-texto);">
+                Um Questionário Analítico Social sobre comportamento digital e agressões online.
+            </p>
+        </header>
+
+        <!-- Legenda de Respostas -->
+        <div class="rounded-xl p-4 border border-[var(--color-verde-claro)]" style="background-color: rgba(163, 184, 153, 0.15);">
+            <h3 class="font-bold text-sm uppercase tracking-wider mb-2" style="color: var(--color-verde-escuro);">Legenda da Escala:</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs font-semibold" style="color: var(--color-texto);">
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded border border-black bg-[#EF4444] text-white font-bold text-[10px]">1</span> Discordo totalmente</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded border border-black bg-gradient-to-br from-[#EF4444] from-[70%] to-[#10B981] text-white font-bold text-[10px]">2</span> Discordo</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded border border-black bg-[#FBBF24] text-black font-bold text-[10px]">3</span> Neutro</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded border border-black bg-gradient-to-br from-[#EF4444] from-[30%] to-[#10B981] to-[70%] text-white font-bold text-[10px]">4</span> Concordo</div>
+                <div class="flex items-center gap-1.5"><span class="w-5 h-5 flex items-center justify-center rounded border border-black bg-[#10B981] text-white font-bold text-[10px]">5</span> Concordo totalmente</div>
+            </div>
+        </div>
+
+        <!-- Feedback de Status de Envio e Conexão -->
+        <div id="status-box" class="hidden p-4 rounded-xl text-sm font-semibold text-center transition-all duration-300"></div>
+
+        <!-- Formulário das Perguntas -->
+        <form id="quizForm" class="space-y-6">
+            
+            <!-- Pergunta 1 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    1. Você passa muito tempo nas redes sociais?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="0">
+                    <button type="button" onclick="selectScore(0, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(0, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(0, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(0, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(0, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 2 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    2. Já sofreu cyberbullying?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="1">
+                    <button type="button" onclick="selectScore(1, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(1, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(1, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(1, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(1, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 3 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    3. Já presenciou ataques online?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="2">
+                    <button type="button" onclick="selectScore(2, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(2, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(2, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(2, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(2, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 4 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    4. Denunciaria um caso?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="3">
+                    <button type="button" onclick="selectScore(3, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(3, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(3, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(3, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(3, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 5 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    5. As redes sociais afetam o comportamento das pessoas?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="4">
+                    <button type="button" onclick="selectScore(4, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(4, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(4, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(4, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(4, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+            <!-- Pergunta 6 -->
+            <div class="question-block p-4 rounded-xl hover:bg-white/50 transition-colors duration-200">
+                <p class="text-base md:text-lg font-semibold mb-3" style="color: var(--color-verde-escuro);">
+                    6. Você acha que as escolas deveriam falar mais sobre cyberbullying?
+                </p>
+                <div class="flex justify-between max-w-sm" data-question="5">
+                    <button type="button" onclick="selectScore(5, 1)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">1</button>
+                    <button type="button" onclick="selectScore(5, 2)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">2</button>
+                    <button type="button" onclick="selectScore(5, 3)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">3</button>
+                    <button type="button" onclick="selectScore(5, 4)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">4</button>
+                    <button type="button" onclick="selectScore(5, 5)" class="option-btn w-12 h-12 rounded-full flex items-center justify-center text-sm">5</button>
+                </div>
+            </div>
+
+        </form>
+
+        <!-- Rodapé com o Novo Botão de Enviar e o Texto Azul -->
+        <footer class="text-center pt-6 border-t border-[var(--color-verde-claro)]/40 flex flex-col items-center gap-4">
+            <!-- Botãozinho de Enviar elegante (cor Verde Escuro - 10% de destaque) -->
+            <button id="btn-submit-action" type="button" onclick="submitAndGoToResults()" class="px-8 py-3 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[var(--color-verde-escuro)] cursor-pointer text-sm tracking-wide uppercase" style="background-color: var(--color-verde-escuro);">
+                Enviar Questionário
+            </button>
+
+            <!-- Link de navegação com texto azul original -->
+            <button type="button" onclick="goToResultsWithoutSubmitting()" class="text-blue-600 hover:text-blue-800 font-bold transition-colors cursor-pointer text-base underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1">
+                Gráficos e porcentagens da pesquisa.
+            </button>
+        </footer>
+
+    </main>
+
+    <!-- PÁGINA: LOGIN ADMINISTRADOR (Oculta por padrão) -->
+    <main id="pagina-admin" class="hidden w-full max-w-md bg-white/40 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-6 md:p-8 space-y-6 relative">
+        <header class="text-center">
+            <h2 class="text-2xl font-extrabold" style="color: var(--color-verde-escuro);">
+                Função Administrador
+            </h2>
+            <p class="text-xs mt-1" style="color: var(--color-texto);">
+                Digite a credencial de segurança de 8 dígitos para visualizar os gráficos de análise.
+            </p>
+        </header>
+
+        <div id="admin-error-box" class="hidden p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs font-semibold text-center">
+            Senha incorreta! Certifique-se dos dados e tente novamente.
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="admin-password" class="block text-xs font-bold uppercase tracking-wide mb-1 opacity-80" style="color: var(--color-verde-escuro);">Senha de Acesso:</label>
+                <input id="admin-password" type="password" maxlength="8" placeholder="Digite a senha de 8 dígitos" class="w-full px-4 py-3 rounded-xl border border-[var(--color-verde-claro)] focus:outline-none focus:ring-2 focus:ring-[var(--color-verde-escuro)] text-center text-lg font-mono tracking-widest bg-white/80">
+            </div>
+
+            <button onclick="authenticateAdmin()" class="w-full py-3 rounded-xl font-bold text-white uppercase tracking-wider text-sm shadow-md hover:shadow-lg transition-all" style="background-color: var(--color-verde-escuro);">
+                Entrar como Admin
+            </button>
+        </div>
+
+        <footer class="text-center pt-2">
+            <button onclick="goToQuiz()" class="text-sm font-semibold hover:underline" style="color: var(--color-verde-escuro);">
+                Voltar para o Questionário
+            </button>
+        </footer>
+    </main>
+
+    <!-- PÁGINA 2: GRÁFICOS (Inicialmente Oculta) -->
+    <main id="pagina-graficos" class="hidden w-full max-w-4xl bg-white/50 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-6 md:p-8 space-y-8">
+        
+        <!-- Cabeçalho de Resultados -->
+        <header class="text-center pb-6 border-b border-[var(--color-verde-escuro)]/20 relative">
+            <button onclick="goToQuiz()" class="absolute left-0 top-1/2 -translate-y-1/2 px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--color-verde-escuro)] text-[var(--color-verde-escuro)] hover:bg-[var(--color-verde-claro)]/20 transition-all">
+                ← Voltar
+            </button>
+            <h1 class="text-3xl font-extrabold" style="color: var(--color-verde-escuro);">
+                Resultados Gerais Acumulados
+            </h1>
+            <p id="total-respondents-text" class="text-sm mt-1 font-semibold text-blue-700">
+                Sincronizando estatísticas coletivas...
+            </p>
+        </header>
+
+        <!-- Grade de Gráficos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Gráfico 1 -->
+            <div class="bg-white/80 p-4 rounded-xl shadow-sm border border-[var(--color-verde-claro)
